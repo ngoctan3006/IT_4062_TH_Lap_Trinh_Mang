@@ -18,8 +18,18 @@ typedef struct node {
     struct node *next;
 } Node;
 
+typedef struct scoreBoard {
+    char subjectID[10];
+    char subject[50];
+    char semester[10];
+    int midtermRate;
+    int finalRate;
+    int numOfStudent;
+    Node *head;
+} ScoreBoard;
+
 Student inputStudentData(void);
-char *upperCase(char *string);
+void upperCase(char *string);
 char convertScore(double score);
 double inputScore(void);
 
@@ -27,10 +37,15 @@ Node *createNode(Student data);
 Node *addHead(Node *head, Student data);
 Node *removeNode(Node *head, char *id);
 Node *searchNode(Node *head, char *id);
+void freeList(Node *head);
 
 char *makeFileName(char *subjectID, char *semester);
 char *makeFileReportName(char *filename);
 void fprintStudentData(FILE *fp, Student data);
+ScoreBoard getScoreBoard(char *filename);
+Student getStudent(FILE *fp);
+void trim(char *string);
+void printFileReport(char *filename, ScoreBoard scoreBoard);
 
 void showMenu(void);
 void clearStdin(void);
@@ -92,14 +107,13 @@ Student inputStudentData(void) {
     return data;
 }
 
-char *upperCase(char *string) {
+void upperCase(char *string) {
     int len = strlen(string);
     for(int i = 0; i < len; i++) {
         if(isalpha(string[i])) {
             string[i] = toupper(string[i]);
         }
     }
-    return string;
 }
 
 char convertScore(double score) {
@@ -163,6 +177,15 @@ Node *searchNode(Node *head, char *id) {
     return temp;
 }
 
+void freeList(Node *head) {
+    Node *temp = head;
+    while(temp != NULL) {
+        head = head->next;
+        free(temp);
+        temp = head;
+    }
+}
+
 char *makeFileName(char *subjectID, char *semester) {
     int size = strlen(subjectID) + strlen(semester) + strlen("_.txt") + 1;
     char *filename = (char *) malloc(size * sizeof(char));
@@ -181,7 +204,7 @@ char *makeFileReportName(char *filename) {
     int size = strlen(filename) + strlen("_rp") + 1;
     char *fileReportName = (char *) malloc(size * sizeof(char));
     if(fileReportName == NULL) {
-        printf("Error to allocate memory!\n");
+        printf("[!] Error to allocate memory!\n");
         exit(1);
     }
     strncpy(fileReportName, filename, strlen(filename) - 4);
@@ -196,6 +219,105 @@ void fprintStudentData(FILE *fp, Student data) {
     fprintf(fp, " %4.1lf |", data.midtermScore);
     fprintf(fp, " %4.1lf |", data.finalScore);
     fprintf(fp, " %c |\n", data.score);
+}
+
+ScoreBoard getScoreBoard(char *filename) {
+    ScoreBoard scoreBoard;
+    Student data;
+    FILE *fp = fopen(filename, "r");
+    if(fp == NULL) {
+        printf("[!] Can't open file %s\n", filename);
+        exit(2);
+    }
+
+    fscanf(fp, "%*[^|]s"); // get "SubjectID"
+    fgetc(fp); // get '|'
+    fscanf(fp, "%[^\n]s", scoreBoard.subjectID);
+    fgetc(fp); // get '\n'
+    fscanf(fp, "%*[^|]s"); // get "Subject"
+    fgetc(fp); // get '|'
+    fscanf(fp, "%[^\n]s", scoreBoard.subject);
+    fgetc(fp); // get '\n'
+    fgetc(fp); // get 'F'
+    fgetc(fp); // get '|'
+    fscanf(fp, "%d", &scoreBoard.midtermRate);
+    fgetc(fp); // get '|'
+    fscanf(fp, "%d", &scoreBoard.finalRate);
+    fgetc(fp); // get '\n'
+    fscanf(fp, "%*[^|]s"); // get "Semester"
+    fgetc(fp); // get '|'
+    fscanf(fp, "%[^\n]s", scoreBoard.semester);
+    fgetc(fp); // get '\n'
+    fscanf(fp, "%*[^|]s"); // get "StudentCount"
+    fgetc(fp); // get '|'
+    fscanf(fp, "%d", &scoreBoard.numOfStudent);
+    fgetc(fp); // get '\n'
+
+    for(int i = 0; i < scoreBoard.numOfStudent; i++) {
+        data = getStudent(fp);
+        scoreBoard.head = addHead(scoreBoard.head, data);
+    }
+
+    fclose(fp);
+    return scoreBoard;
+}
+
+Student getStudent(FILE *fp) {
+    Student data;
+
+    fgetc(fp);  // get 'S'
+    fgetc(fp);  // get '|'
+    fscanf(fp, "%[^|]s", data.id);
+    fgetc(fp);  // get '|'
+    fscanf(fp, "%[^|]s", data.lastName);
+    trim(data.lastName);
+    fgetc(fp);  // get '|'
+    fscanf(fp, "%[^|]s", data.firstName);
+    trim(data.firstName);
+    fgetc(fp);  // get '|'
+    fscanf(fp, "%lf", &data.midtermScore);
+    fgetc(fp);  // get space
+    fgetc(fp);  // get '|'
+    fscanf(fp, "%lf", &data.finalScore);
+    fgetc(fp);  // get space
+    fgetc(fp);  // get '|'
+    fgetc(fp);  // get space
+    fscanf(fp, "%c", &data.score);
+    fgetc(fp);  // get space
+    fgetc(fp);  // get '|'
+    fgetc(fp);  // get '\n'
+
+    return data;
+}
+
+void trim(char *string) {
+    int count = 0;
+    int len = strlen(string);
+    while(count < len) {
+        if(string[count] == ' ') count++;
+        else break;
+    }
+    if(count) {
+        strcpy(&string[0], &string[count]);
+        len = strlen(string);
+    }
+    while(len > 0) {
+        if(string[len-1] == ' ') len--;
+        else break;
+    }
+    string[len] = '\0';
+}
+
+void printFileReport(char *filename, ScoreBoard scoreBoard) {
+    FILE *fp = fopen(filename, "w");
+    if(fp == NULL) {
+        printf("[!] Can't open file %s\n", filename);
+        exit(2);
+    }
+
+    fprintf(fp, "%s\n\n\n", filename);
+    
+    fclose(fp);
 }
 
 void showMenu(void) {
