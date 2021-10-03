@@ -45,6 +45,7 @@ void fprintStudentData(FILE *fp, Student data);
 ScoreBoard getScoreBoard(char *filename);
 Student getStudent(FILE *fp);
 void trim(char *string);
+void printFile(char *filename, ScoreBoard scoreBoard);
 void printFileReport(char *filename, ScoreBoard scoreBoard);
 
 void showMenu(void);
@@ -54,7 +55,7 @@ void addScore(void);
 void removeScore(void);
 void searchScore(void);
 void displayScore(void);
-int isRepeat(void);
+int isRepeat(char *message);
 
 int main() {
     int choice;
@@ -223,12 +224,12 @@ void fprintStudentData(FILE *fp, Student data) {
 
 ScoreBoard getScoreBoard(char *filename) {
     ScoreBoard scoreBoard;
-    Student data;
+    strcpy(scoreBoard.subjectID, "NONE");
     FILE *fp = fopen(filename, "r");
-    if(fp == NULL) {
-        printf("[!] Can't open file %s\n", filename);
-        exit(2);
+    if(!fp) {
+        return scoreBoard;
     }
+    Student data;
 
     fscanf(fp, "%*[^|]s"); // get "SubjectID"
     fgetc(fp); // get '|'
@@ -308,14 +309,73 @@ void trim(char *string) {
     string[len] = '\0';
 }
 
+void printFile(char *filename, ScoreBoard scoreBoard) {
+    FILE *fp = fopen(filename, "w");
+    if(!fp) {
+        printf("[!] Can't open file!\n");
+        exit(2);
+    }
+    Student data;
+
+    fprintf(fp, "SubjectID|%s\n", scoreBoard.subjectID);
+    fprintf(fp, "Subject|%s\n", scoreBoard.subject);
+    fprintf(fp, "F|%d|%d\n", scoreBoard.midtermRate, scoreBoard.finalRate);
+    fprintf(fp, "Semester|%s\n", scoreBoard.semester);
+    fprintf(fp, "StudentCount|%d\n", scoreBoard.numOfStudent);
+    for(int i = 0; i < scoreBoard.numOfStudent; i++) {
+        printf("  Enter information of student %d:\n", i+1);
+        data = inputStudentData();
+        data.totalScore = (scoreBoard.midtermRate * data.midtermScore + scoreBoard.finalRate * data.finalScore) / 100;
+        if(data.midtermScore < 3 || data.finalScore < 3) {
+            data.score = 'F';
+        } else {
+            data.score = convertScore(data.totalScore);
+        }
+        fprintStudentData(fp, data);
+    }
+    fclose(fp);
+}
+
 void printFileReport(char *filename, ScoreBoard scoreBoard) {
     FILE *fp = fopen(filename, "w");
-    if(fp == NULL) {
+    if(!fp) {
         printf("[!] Can't open file %s\n", filename);
         exit(2);
     }
 
+    Student maxScore;
+    Student minScore;
+    double max = -1.0;
+    double min = 11.0;
+    int histogramData[6] = {0};
+    double sum = 0.0;
+    Node *temp = scoreBoard.head;
+    while(temp != NULL) {
+        if(max < temp->data.totalScore) {
+            maxScore = temp->data;
+        }
+        if(min > temp->data.totalScore) {
+            minScore = temp->data;
+        }
+        sum += temp->data.totalScore;
+        histogramData[temp->data.score - 'A']++;
+        temp = temp->next;
+    }
+
     fprintf(fp, "%s\n\n\n", filename);
+    fprintf(fp, "The student with the highest mark is: %s %s\n", maxScore.lastName, maxScore.firstName);
+    fprintf(fp, "The student with the lowest mark is: %s %s\n", minScore.lastName, minScore.firstName);
+    fprintf(fp, "The average mark is: %.2lf\n\n\n", sum / scoreBoard.numOfStudent);
+    fprintf(fp, "A histogram of the subject %s is:\n", scoreBoard.subjectID);
+    for(int i = 0; i < 6; i++) {
+        if(i != 4) {
+            fprintf(fp, "%c: ", i + 'A');
+            for(int j = 0; j < histogramData[i]; j++) {
+                fprintf(fp, "*");
+            }
+            fprintf(fp, "\n");
+        }
+    }
     
     fclose(fp);
 }
@@ -325,11 +385,11 @@ void showMenu(void) {
     printf("  +----------------------------------------------+\n");
     printf("  | %-45s|\n", "Learning Management System");
     printf("  +---+------------------------------------------+\n");
-    printf("  | 1 | %-40s |\n", "Add a new score board");
+    printf("  | 1 | %-40s |\n", "Add a new scoreboard");
     printf("  | 2 | %-40s |\n", "Add score");
     printf("  | 3 | %-40s |\n", "Remove score");
     printf("  | 4 | %-40s |\n", "Search score");
-    printf("  | 5 | %-40s |\n", "Display score board and score report");
+    printf("  | 5 | %-40s |\n", "Display scoreboard and score report");
     printf("  +---+------------------------------------------+\n\n");
 }
 
@@ -338,64 +398,64 @@ void clearStdin(void) {
 }
 
 void addNewScoreBoard(void) {
+    ScoreBoard scoreBoard;
+    do {
+        printf("\nAdd new scoreboard:\n");
+        printf("  Enter subject ID: ");
+        scanf("%s", scoreBoard.subjectID);
+        clearStdin();
+        printf("  Enter subject name: ");
+        scanf("%[^\n]s", scoreBoard.subject);
+        clearStdin();
+        printf("  Enter midterm rate: ");
+        scanf("%d", &scoreBoard.midtermRate);
+        clearStdin();
+        printf("  Enter final rate: ");
+        scanf("%d", &scoreBoard.finalRate);
+        clearStdin();
+        printf("  Enter semester: ");
+        scanf("%s", scoreBoard.semester);
+        clearStdin();
+        printf("  Enter number of students: ");
+        scanf("%d", &scoreBoard.numOfStudent);
+        clearStdin();
+
+        char *filename = makeFileName(scoreBoard.subjectID, scoreBoard.semester);
+        printFile(filename, scoreBoard);
+        free(filename);
+    } while(isRepeat("Do you want to add another scoreboard"));
+}
+
+void addScore(void) {
     char subjectID[10];
-    char subject[50];
     char semester[10];
-    int midtermRate, finalRate;
     int numOfStudent;
     Student data;
 
+    printf("\nAdd score\n");
+    printf("  Enter subject ID: ");
+    scanf("%s", subjectID);
+    clearStdin();
+    printf("  Enter semester: ");
+    scanf("%s", semester);
+    clearStdin();
+
+    char *filename = makeFileName(subjectID, semester);
+    ScoreBoard scoreBoard = getScoreBoard(filename);
+    if(strcmp(scoreBoard.subjectID, "NONE") == 0) {
+        printf("  [!] Scoreboard with subject ID '%s' is not exist!\n", subjectID);
+        return;
+    }
+    numOfStudent = scoreBoard.numOfStudent;
+
     do {
-        printf("\nAdd new score board:\n");
-        printf("  Enter subject ID: ");
-        scanf("%s", subjectID);
-        clearStdin();
-        printf("  Enter subject name: ");
-        scanf("%[^\n]s", subject);
-        clearStdin();
-        printf("  Enter midterm rate: ");
-        scanf("%d", &midtermRate);
-        clearStdin();
-        printf("  Enter final rate: ");
-        scanf("%d", &finalRate);
-        clearStdin();
-        printf("  Enter semester: ");
-        scanf("%s", semester);
-        clearStdin();
-        printf("  Enter number of students: ");
-        scanf("%d", &numOfStudent);
-        clearStdin();
+        data = inputStudentData();
+        numOfStudent++;
+    } while(isRepeat("Do you want to add add another student"));
 
-        char *filename = makeFileName(subjectID, semester);
-        FILE *fp = fopen(filename, "w");
-        if(fp == NULL) {
-            printf("[!] Can't open file!\n");
-            exit(2);
-        }
-
-        fprintf(fp, "SubjectID|%s\n", subjectID);
-        fprintf(fp, "Subject|%s\n", subject);
-        fprintf(fp, "F|%d|%d\n", midtermRate, finalRate);
-        fprintf(fp, "Semester|%s\n", semester);
-        fprintf(fp, "StudentCount|%d\n", numOfStudent);
-        for(int i = 0; i < numOfStudent; i++) {
-            printf("  Enter information of student %d:\n", i+1);
-            data = inputStudentData();
-            data.totalScore = (midtermRate * data.midtermScore + finalRate * data.finalScore) / 100;
-            if(data.midtermScore < 3 || data.finalScore < 3) {
-                data.score = 'F';
-            } else {
-                data.score = convertScore(data.totalScore);
-            }
-            fprintStudentData(fp, data);
-        }
-
-        free(filename);
-        fclose(fp);
-    } while(isRepeat());
+    free(filename);
+    freeList(scoreBoard.head);
 }
-
-void addScore(void) {}
 
 void removeScore(void) {}
 
@@ -403,10 +463,10 @@ void searchScore(void) {}
 
 void displayScore(void) {}
 
-int isRepeat(void) {
+int isRepeat(char *message) {
     char choice;
     do {
-        printf("  Do you want to repeat? [y/n]: ");
+        printf("  %s? [y/n]: ", message);
         scanf("%c", &choice);
         clearStdin();
         if(isalpha(choice)) {
