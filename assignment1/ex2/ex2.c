@@ -28,7 +28,7 @@ typedef struct scoreBoard {
     Node *head;
 } ScoreBoard;
 
-Student inputStudentData(void);
+Student inputStudentData(ScoreBoard scoreBoard);
 void upperCase(char *string);
 char convertScore(double score);
 double inputScore(void);
@@ -56,6 +56,9 @@ void removeScore(void);
 void searchScore(void);
 void displayScore(void);
 int isRepeat(char *message);
+void printStudent(Student data);
+void printScoreBoard(ScoreBoard scoreBoard);
+void printReport(ScoreBoard scoreBoard);
 
 int main() {
     int choice;
@@ -87,11 +90,18 @@ int main() {
     return 0;
 }
 
-Student inputStudentData(void) {
+Student inputStudentData(ScoreBoard scoreBoard) {
     Student data;
+    Node *isExist = NULL;
     printf("  Enter student ID: ");
-    scanf("%s", data.id);
-    clearStdin();
+    do {
+        scanf("%s", data.id);
+        clearStdin();
+        isExist = searchNode(scoreBoard.head, data.id);
+        if(isExist) {
+            printf("  [!] ID %s is already exist! Enter again: ", data.id);
+        }
+    } while(isExist);
     printf("  Enter first name: ");
     scanf("%[^\n]s", data.firstName);
     clearStdin();
@@ -104,6 +114,12 @@ Student inputStudentData(void) {
     data.midtermScore = inputScore();
     printf("  Enter final score: ");
     data.finalScore = inputScore();
+    data.totalScore = (scoreBoard.midtermRate * data.midtermScore + scoreBoard.finalRate * data.finalScore) / 100;
+    if(data.midtermScore < 3 || data.finalScore < 3) {
+        data.score = 'F';
+    } else {
+        data.score = convertScore(data.totalScore);
+    }
 
     return data;
 }
@@ -208,7 +224,8 @@ char *makeFileReportName(char *filename) {
         printf("[!] Error to allocate memory!\n");
         exit(1);
     }
-    strncpy(fileReportName, filename, strlen(filename) - 4);
+    strcpy(fileReportName, filename);
+    fileReportName[strlen(fileReportName) - 4] = '\0';
     strcat(fileReportName, "_rp.txt");
     return fileReportName;
 }
@@ -224,6 +241,7 @@ void fprintStudentData(FILE *fp, Student data) {
 
 ScoreBoard getScoreBoard(char *filename) {
     ScoreBoard scoreBoard;
+    scoreBoard.head = NULL;
     strcpy(scoreBoard.subjectID, "NONE");
     FILE *fp = fopen(filename, "r");
     if(!fp) {
@@ -315,23 +333,17 @@ void printFile(char *filename, ScoreBoard scoreBoard) {
         printf("[!] Can't open file!\n");
         exit(2);
     }
-    Student data;
 
     fprintf(fp, "SubjectID|%s\n", scoreBoard.subjectID);
     fprintf(fp, "Subject|%s\n", scoreBoard.subject);
     fprintf(fp, "F|%d|%d\n", scoreBoard.midtermRate, scoreBoard.finalRate);
     fprintf(fp, "Semester|%s\n", scoreBoard.semester);
     fprintf(fp, "StudentCount|%d\n", scoreBoard.numOfStudent);
-    for(int i = 0; i < scoreBoard.numOfStudent; i++) {
-        printf("  Enter information of student %d:\n", i+1);
-        data = inputStudentData();
-        data.totalScore = (scoreBoard.midtermRate * data.midtermScore + scoreBoard.finalRate * data.finalScore) / 100;
-        if(data.midtermScore < 3 || data.finalScore < 3) {
-            data.score = 'F';
-        } else {
-            data.score = convertScore(data.totalScore);
-        }
-        fprintStudentData(fp, data);
+
+    Node *temp = scoreBoard.head;
+    while(temp != NULL) {
+        fprintStudentData(fp, temp->data);
+        temp = temp->next;
     }
     fclose(fp);
 }
@@ -353,9 +365,11 @@ void printFileReport(char *filename, ScoreBoard scoreBoard) {
     while(temp != NULL) {
         if(max < temp->data.totalScore) {
             maxScore = temp->data;
+            max = temp->data.totalScore;
         }
         if(min > temp->data.totalScore) {
             minScore = temp->data;
+            min = temp->data.totalScore;
         }
         sum += temp->data.totalScore;
         histogramData[temp->data.score - 'A']++;
@@ -369,7 +383,7 @@ void printFileReport(char *filename, ScoreBoard scoreBoard) {
     fprintf(fp, "A histogram of the subject %s is:\n", scoreBoard.subjectID);
     for(int i = 0; i < 6; i++) {
         if(i != 4) {
-            fprintf(fp, "%c: ", i + 'A');
+            fprintf(fp, "%c:", i + 'A');
             for(int j = 0; j < histogramData[i]; j++) {
                 fprintf(fp, "*");
             }
@@ -399,8 +413,10 @@ void clearStdin(void) {
 
 void addNewScoreBoard(void) {
     ScoreBoard scoreBoard;
+    scoreBoard.head = NULL;
+    Student data;
     do {
-        printf("\nAdd new scoreboard:\n");
+        printf("\nADD NEW SCOREBOARD\n");
         printf("  Enter subject ID: ");
         scanf("%s", scoreBoard.subjectID);
         clearStdin();
@@ -420,19 +436,28 @@ void addNewScoreBoard(void) {
         scanf("%d", &scoreBoard.numOfStudent);
         clearStdin();
 
+        for(int i = 0; i < scoreBoard.numOfStudent; i++) {
+            printf("  Enter information of student %d:\n", i+1);
+            data = inputStudentData(scoreBoard);
+            scoreBoard.head = addHead(scoreBoard.head, data);
+        }
+
         char *filename = makeFileName(scoreBoard.subjectID, scoreBoard.semester);
+        char *filenameReport = makeFileReportName(filename);
         printFile(filename, scoreBoard);
+        printFileReport(filenameReport, scoreBoard);
         free(filename);
+        free(filenameReport);
+        freeList(scoreBoard.head);
     } while(isRepeat("Do you want to add another scoreboard"));
 }
 
 void addScore(void) {
     char subjectID[10];
     char semester[10];
-    int numOfStudent;
     Student data;
 
-    printf("\nAdd score\n");
+    printf("\nADD SCORE\n");
     printf("  Enter subject ID: ");
     scanf("%s", subjectID);
     clearStdin();
@@ -443,25 +468,137 @@ void addScore(void) {
     char *filename = makeFileName(subjectID, semester);
     ScoreBoard scoreBoard = getScoreBoard(filename);
     if(strcmp(scoreBoard.subjectID, "NONE") == 0) {
-        printf("  [!] Scoreboard with subject ID '%s' is not exist!\n", subjectID);
+        printf("  [!] Scoreboard with subject ID '%s' in semester %s is not exist!\n", subjectID, semester);
+        // printf("  -> Do you want to enter again? ");
+        printf("  Press Enter to back to menu!");
+        clearStdin();
         return;
     }
-    numOfStudent = scoreBoard.numOfStudent;
+    char *filenameReport = makeFileReportName(filename);
 
     do {
-        data = inputStudentData();
-        numOfStudent++;
+        data = inputStudentData(scoreBoard);
+        scoreBoard.head = addHead(scoreBoard.head, data);
+        scoreBoard.numOfStudent++;
     } while(isRepeat("Do you want to add add another student"));
 
+    printFile(filename, scoreBoard);
+    printFileReport(filenameReport, scoreBoard);
+    free(filename);
+    free(filenameReport);
+    freeList(scoreBoard.head);
+}
+
+void removeScore(void) {
+    char subjectID[10];
+    char semester[10];
+    char id[10];
+    printf("\nREMOVE SCORE\n");
+    printf("  Enter subject ID: ");
+    scanf("%s", subjectID);
+    clearStdin();
+    printf("  Enter semester: ");
+    scanf("%s", semester);
+    clearStdin();
+
+    char *filename = makeFileName(subjectID, semester);
+    ScoreBoard scoreBoard = getScoreBoard(filename);
+    if(strcmp(scoreBoard.subjectID, "NONE") == 0) {
+        printf("  [!] Scoreboard with subject ID '%s' in semester %s is not exist!\n", subjectID, semester);
+        // printf("  -> Do you want to enter again? ");
+        printf("  Press Enter to back to menu!");
+        clearStdin();
+        return;
+    }
+    char *filenameReport = makeFileReportName(filename);
+    int num = scoreBoard.numOfStudent;
+
+    do {
+        printf("  Enter student ID: ");
+        scanf("%s", id);
+        clearStdin();
+        if(!searchNode(scoreBoard.head, id)) {
+            printf("  [!] Student ID %s is not exist!\n", id);
+            continue;
+        }
+        scoreBoard.head = removeNode(scoreBoard.head, id);
+        scoreBoard.numOfStudent--;
+        printf("  Remove succesfully!\n");
+    } while(isRepeat("Do you want to remove another student"));
+
+    printFile(filename, scoreBoard);
+    printFileReport(filenameReport, scoreBoard);
+    free(filename);
+    free(filenameReport);
+    freeList(scoreBoard.head);
+}
+
+void searchScore(void) {
+    char subjectID[10];
+    char semester[10];
+    char id[10];
+    printf("\nSEARCH SCORE\n");
+    printf("  Enter subject ID: ");
+    scanf("%s", subjectID);
+    clearStdin();
+    printf("  Enter semester: ");
+    scanf("%s", semester);
+    clearStdin();
+
+    char *filename = makeFileName(subjectID, semester);
+    ScoreBoard scoreBoard = getScoreBoard(filename);
+    if(strcmp(scoreBoard.subjectID, "NONE") == 0) {
+        printf("  [!] Scoreboard with subject ID '%s' in semester %s is not exist!\n", subjectID, semester);
+        // printf("  -> Do you want to enter again? ");
+        printf("  Press Enter to back to menu!");
+        clearStdin();
+        return;
+    }
+
+    do {
+        printf("  Enter student ID: ");
+        scanf("%s", id);
+        clearStdin();
+        Node *find = searchNode(scoreBoard.head, id);
+        if(!find) {
+            printf("  [!] Student ID %s is not exist!\n", id);
+        } else {
+            printf("  Student info:\n");
+            printStudent(find->data);
+        }
+    } while(isRepeat("Do you want to search another student"));
     free(filename);
     freeList(scoreBoard.head);
 }
 
-void removeScore(void) {}
+void displayScore(void) {
+    char subjectID[10];
+    char semester[10];
+    char id[10];
+    do {
+        printf("\nSEARCH SCORE\n");
+        printf("  Enter subject ID: ");
+        scanf("%s", subjectID);
+        clearStdin();
+        printf("  Enter semester: ");
+        scanf("%s", semester);
+        clearStdin();
 
-void searchScore(void) {}
-
-void displayScore(void) {}
+        char *filename = makeFileName(subjectID, semester);
+        ScoreBoard scoreBoard = getScoreBoard(filename);
+        if(strcmp(scoreBoard.subjectID, "NONE") == 0) {
+            printf("  [!] Scoreboard with subject ID '%s' in semester %s is not exist!\n", subjectID, semester);
+            // printf("  -> Do you want to enter again? ");
+            printf("  Press Enter to back to menu!");
+            clearStdin();
+            return;
+        }
+        printScoreBoard(scoreBoard);
+        printReport(scoreBoard);
+        free(filename);
+        freeList(scoreBoard.head);
+    } while(isRepeat("Do you want to print a scoreboard"));
+}
 
 int isRepeat(char *message) {
     char choice;
@@ -475,4 +612,64 @@ int isRepeat(char *message) {
     } while (choice != 'y' && choice != 'n');
     if(choice == 'y') return 1;
     else return 0;
+}
+
+void printStudent(Student data) {
+    printf("    %-8s|", data.id);
+    printf("%-15s|", data.lastName);
+    printf("%-7s|", data.firstName);
+    printf(" %4.1lf |", data.midtermScore);
+    printf(" %4.1lf |", data.finalScore);
+    printf(" %c |\n", data.score);
+}
+
+void printScoreBoard(ScoreBoard scoreBoard) {
+    printf("\n    SubjectID|%s\n", scoreBoard.subjectID);
+    printf("    Subject|%s\n", scoreBoard.subject);
+    printf("    F|%d|%d\n", scoreBoard.midtermRate, scoreBoard.finalRate);
+    printf("    Semester|%s\n", scoreBoard.semester);
+    printf("    StudentCount|%d\n", scoreBoard.numOfStudent);
+    Node *temp = scoreBoard.head;
+    while(temp != NULL) {
+        printStudent(temp->data);
+        temp = temp->next;
+    }
+    printf("\n\n\n");
+}
+
+void printReport(ScoreBoard scoreBoard) {
+    Student maxScore;
+    Student minScore;
+    double max = -1.0;
+    double min = 11.0;
+    int histogramData[6] = {0};
+    double sum = 0.0;
+    Node *temp = scoreBoard.head;
+    while(temp != NULL) {
+        if(max < temp->data.totalScore) {
+            maxScore = temp->data;
+            max = temp->data.totalScore;
+        }
+        if(min > temp->data.totalScore) {
+            minScore = temp->data;
+            min = temp->data.totalScore;
+        }
+        sum += temp->data.totalScore;
+        histogramData[temp->data.score - 'A']++;
+        temp = temp->next;
+    }
+    printf("    %s_%s_report\n\n", scoreBoard.subjectID, scoreBoard.semester);
+    printf("    The student with the highest mark is: %s %s\n", maxScore.lastName, maxScore.firstName);
+    printf("    The student with the lowest mark is: %s %s\n", minScore.lastName, minScore.firstName);
+    printf("    The average mark is: %.2lf\n\n\n", sum / scoreBoard.numOfStudent);
+    printf("    A histogram of the subject %s is:\n", scoreBoard.subjectID);
+    for(int i = 0; i < 6; i++) {
+        if(i != 4) {
+            printf("    %c:", i + 'A');
+            for(int j = 0; j < histogramData[i]; j++) {
+                printf("*");
+            }
+            printf("\n");
+        }
+    }
 }

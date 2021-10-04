@@ -2,8 +2,10 @@ SubjectID|MI1144
 Subject|Dai So Tuyen Tinh
 F|30|70
 Semester|20201
-StudentCount|4
-S|20184191|NGUYEN NGOC    |TAN    | 10.0 |  9.0 | A |
-S|20192650|LE THI CAM     |LY     |  8.0 |  9.0 | A |
-S|20202018|NGHIEM TRA     |ANH    |  7.0 |  9.0 | B |
-S|20292233|LE MINH        |AN     |  4.0 |  7.0 | C |
+StudentCount|6
+S|20192650|LE THI CAM     |LY     |  6.0 |  9.0 | B |
+S|20202019|NGUY THI LAN   |ANH    |  7.0 |  5.0 | C |
+S|20202018|NGHIEM TRA     |ANH    |  9.0 |  7.0 | B |
+S|20184191|NGUYEN NGOC    |TAN    |  9.5 |  8.5 | A |
+S|20184195|TRAN QUANG     |MINH   | 10.0 |  2.5 | F |
+S|20184196|NGUYEN MINH    |HIEU   |  3.0 |  6.0 | D |
