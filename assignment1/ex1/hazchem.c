@@ -1,41 +1,6 @@
 #include <stdio.h>
 #include <string.h>
-
-#define MAX_LEN 4
-#define MAX_MATERIAL 10
-
-int checkHCCode(char *code);
-int containColor(char *code);
-void printNotify(char *code, char *cf);
-char *material(char *code);
-char *reactivity(char *code);
-char *protection(char *code, char *cf);
-char *containment(char *code);
-
-int main() {
-    char hazchemCode[MAX_LEN];
-    char cf[MAX_LEN];
-    int isContainColor;
-    printf("Enter HAZCHEM code: ");
-    scanf("%s", hazchemCode);
-    while(getchar() != '\n');
-    if(!checkHCCode(hazchemCode)) {
-        printf("The code you entered is not a HAZCHEM code!\n");
-        return 2;
-    }
-
-    isContainColor = containColor(hazchemCode);
-    if(isContainColor) {
-        do {
-            printf("Is the %c reverse coloured? [yes/no] ", hazchemCode[1]);
-            scanf("%s", cf);
-            while(getchar() != '\n');
-        } while(strcmp(cf, "yes") != 0 && strcmp(cf, "no") != 0);
-    }
-
-    printNotify(hazchemCode, cf);
-    return 0;
-}
+#include "hazchem.h"
 
 int checkHCCode(char *code) {
     const char *charCode = "PRSTWXYZ";
@@ -74,6 +39,7 @@ char *material(char *code) {
         case '2': return "fog";
         case '3': return "foam";
         case '4': return "dry agent";
+        default: return "";
     }
 }
 
@@ -100,6 +66,7 @@ char *protection(char *code, char *cf) {
         case 'Z':
             if(strcmp(cf, "yes") == 0) return "breathing apparatus, protective gloves for fire only";
             return "breathing apparatus";
+        default: return "";
     }
 }
 
@@ -113,5 +80,6 @@ char *containment(char *code) {
         case 'X':
         case 'Y':
         case 'Z': return "a need to avoid spillages from entering drains or water courses";
+        default: return "";
     }
 }
