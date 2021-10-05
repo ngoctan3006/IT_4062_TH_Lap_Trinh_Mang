@@ -1,14 +1,14 @@
 MI1144_20201_rp.txt
 
 
-The student with the highest mark is: LE THI CAM LY
-The student with the lowest mark is: NGUY THI LAN ANH
-The average mark is: 1.35
+The student with the highest mark is: NGUYEN NGOC TAN
+The student with the lowest mark is: TRAN QUANG MINH
+The average mark is: 6.84
 
 
 A histogram of the subject MI1144 is:
 A:*
-B:**
+B:****
 C:*
 D:*
 F:*

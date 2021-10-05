@@ -274,6 +274,7 @@ ScoreBoard getScoreBoard(char *filename) {
 
     for(int i = 0; i < scoreBoard.numOfStudent; i++) {
         data = getStudent(fp);
+        data.totalScore = (scoreBoard.midtermRate * data.midtermScore + scoreBoard.finalRate * data.finalScore) / 100;
         scoreBoard.head = addHead(scoreBoard.head, data);
     }
 
@@ -597,7 +598,7 @@ void displayScore(void) {
         printReport(scoreBoard);
         free(filename);
         freeList(scoreBoard.head);
-    } while(isRepeat("Do you want to print a scoreboard"));
+    } while(isRepeat("Do you want to print another scoreboard"));
 }
 
 int isRepeat(char *message) {
