@@ -564,8 +564,9 @@ void searchScore(void) {
         if(!find) {
             printf("  [!] Student ID %s is not exist!\n", id);
         } else {
-            printf("  Student info:\n");
+            printf("\n  Student info:\n");
             printStudent(find->data);
+            printf("\n");
         }
     } while(isRepeat("Do you want to search another student"));
     free(filename);
