@@ -1,7 +1,8 @@
 *.exe
 *.out
 *.o
-Lab01/
+*.zip
 draft.c
 key.txt
 exercise1
+resolver
