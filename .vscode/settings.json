@@ -3,6 +3,7 @@
         "stdio.h": "c",
         "studentmanager.h": "c",
         "inet.h": "c",
-        "errno.h": "c"
+        "errno.h": "c",
+        "in.h": "c"
     }
 }
