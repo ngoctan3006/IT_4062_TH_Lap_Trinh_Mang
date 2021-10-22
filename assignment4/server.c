@@ -35,7 +35,7 @@ char *handleString(char *string) {
 
 int main(int argc, char **argv) {
     if (argc < 2) {
-        printf("Not found port number\n");
+        printf("Usage: ./server PortNumber\n");
         return 1;
     }
 
