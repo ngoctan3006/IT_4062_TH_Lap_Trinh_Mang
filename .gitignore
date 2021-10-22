@@ -6,3 +6,7 @@ draft.c
 key.txt
 exercise1
 resolver
+client
+server
+draft_c.c
+draft_s.c

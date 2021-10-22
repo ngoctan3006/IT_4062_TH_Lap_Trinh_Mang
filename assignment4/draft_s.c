@@ -75,7 +75,7 @@ int main(int argc, char const *argv[])
 	{
 		// get string from client
 		sin_size = sizeof(struct sockaddr_in);
-		bytes_received = recvfrom(server_sock, buff, MAX-1, 0, (struct sockaddr*)&client, &sin_size);
+		bytes_received = recvfrom(server_sock, buff, MAX-1, 0, (struct sockaddr*) &client, &sin_size);
 
 		if (bytes_received < 0)
 			perror("\nError: ");
@@ -91,7 +91,7 @@ int main(int argc, char const *argv[])
 				reply = "Error";
 
 			// return result to client
-			bytes_sent = sendto(server_sock, reply, strlen(reply), 0, (struct sockaddr*)&client, sin_size);
+			bytes_sent = sendto(server_sock, reply, strlen(reply), 0, (struct sockaddr*) &client, sin_size);
 			if (bytes_sent < 0)
 				perror("\nError: ");
 		}

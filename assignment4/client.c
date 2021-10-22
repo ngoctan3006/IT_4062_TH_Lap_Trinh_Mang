@@ -16,7 +16,7 @@ int main(int argc, char **argv) {
         return 1;
     }
     int client_sock;
-    char buff[BUFF_SIZE];
+    char buff[BUFF_SIZE + 1] = "";
     struct sockaddr_in server_addr;
     int bytes_sent, bytes_received;
     socklen_t sin_size;
@@ -37,7 +37,7 @@ int main(int argc, char **argv) {
     while(1) {
         //Step 3: Communicate with server
         printf("\nInsert string to send (Ctrl + C to quit): ");
-        memset(buff,'\0',(strlen(buff) + 1));
+        memset(buff, '\0', (strlen(buff) + 1));
         scanf("%[^\n]s", buff);
         while(getchar() != '\n');
         
@@ -57,7 +57,7 @@ int main(int argc, char **argv) {
             return 2;
         }
         buff[bytes_received] = '\0';
-        printf("Reply from server:\n%s\n", buff);
+        printf("\nReply from server:\n%s\n", buff);
     }
         
     close(client_sock);

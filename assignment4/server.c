@@ -16,7 +16,7 @@ char *handleString(char *string) {
         return NULL;
     }
     int countNumber = 0, countLetter = 0;
-    char *res = malloc(BUFF_SIZE + 1);
+    char *res = (char *) malloc(BUFF_SIZE + 1);
     char number[BUFF_SIZE], letter[BUFF_SIZE];
     for (int i = 0; string[i] != '\0'; i++) {
         if (isdigit(string[i])) {
@@ -24,6 +24,7 @@ char *handleString(char *string) {
         } else if (isalpha(string[i])) {
             letter[countLetter++] = string[i];
         } else {
+            free(res);
             return NULL;
         }
     }
@@ -59,7 +60,7 @@ int main(int argc, char **argv) {
     server.sin_addr.s_addr = INADDR_ANY; /* INADDR_ANY puts your IP address automatically */
     bzero(&(server.sin_zero), 8); /* zero the rest of the structure */
 
-    if (bind(server_sock, (struct sockaddr *)&server, (socklen_t) sizeof(struct sockaddr)) == -1) {
+    if (bind(server_sock, (struct sockaddr *) &server, (socklen_t) sizeof(struct sockaddr)) == -1) {
         /* calls bind() */
         perror("\nError: ");
         exit(2);
@@ -69,7 +70,7 @@ int main(int argc, char **argv) {
     while (1) {
         sin_size = sizeof(struct sockaddr_in);
 
-        bytes_received = recvfrom(server_sock, buff, BUFF_SIZE - 1, 0, (struct sockaddr *)&client, &sin_size);
+        bytes_received = recvfrom(server_sock, buff, BUFF_SIZE - 1, 0, (struct sockaddr *) &client, &sin_size);
 
         if (bytes_received < 0)
             perror("\nError: ");
@@ -78,20 +79,16 @@ int main(int argc, char **argv) {
             buff[bytes_received] = '\0';
             char *res = handleString(buff);
             if (res == NULL) {
+                res = (char *) malloc(strlen("Error") + 1);
                 strcpy(res, "Error");
             }
             bytes_sent = sendto(server_sock, res, strlen(res), 0, (struct sockaddr *) &client, sin_size);
             if (bytes_sent < 0) {
                 perror("\nError: ");
             }
-        }
-
-        bytes_sent = sendto(server_sock, buff, bytes_received, 0, (struct sockaddr *)&client, sin_size); /* send to the client welcome message */
-        if (bytes_sent < 0) {
-            perror("\nError: ");
+            free(res);
         }
     }
-
     close(server_sock);
     return 0;
 }
