@@ -9,7 +9,6 @@
 
 #define MAX_SIZE 1024
 
-
 int main(int argc, char **argv) {
     if (argc != 4) {
         printf("Usage: ./client IPAddress PortNumber Path\n");
