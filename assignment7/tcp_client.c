@@ -52,14 +52,17 @@ int main(int argc, char **argv) {
     }
     FILE *fp = fopen(path, "rb");
     if (!fp) {
-        printf("\n[!] Cannot open your file!\n\n");
+        printf("\n[!] File is not exists!\n\n");
         return 2;
     }
+    fseek(fp, 0, SEEK_END);
+    int sizeOfFile = ftell(fp);
+    fseek(fp, 0, SEEK_SET);
 
     char *filename = getFilename(path);
     char size[11];
-    sprintf(size, "%10d", (int) strlen(filename));
-    bytes_sent = send(client_sock, size, strlen(size), 0);
+    sprintf(size, "%-10d", (int) strlen(filename));
+    bytes_sent = send(client_sock, size, 10, 0);
     if (bytes_sent <= 0) {
         printf("\nConnection closed!\n");
         return 3;
@@ -70,14 +73,17 @@ int main(int argc, char **argv) {
         return 3;
     }
     free(filename);
-
+    sprintf(size, "%-10d", sizeOfFile);
+    bytes_sent = send(client_sock, size, 10, 0);
+    if (bytes_sent <= 0) {
+        printf("\nConnection closed!\n");
+        return 3;
+    }
     int n;
     while ((n = fread(buff, 1, BUFF_SIZE, fp)) > 0) {
         send(client_sock, buff, n, 0);
         total_bytes += n;
     }
-    strcpy(buff, "done");
-    send(client_sock, buff, strlen(buff), 0);
     printf("\nSuccess: Sent %d bytes to server\n", total_bytes);
 
     //receive echo reply
@@ -101,7 +107,7 @@ int main(int argc, char **argv) {
         fwrite(buff, sizeof(char), n, fp);
     }
     printf("\nReceived file from server successfully!");
-    printf("\nThe file has been saved in the folder \"recv\" with the name \"%s\"\n\n", tempFileName);
+    printf("\nThe file has been saved in the folder \"/recv\" with the name \"%s\"\n\n", tempFileName);
     fclose(fp);
 
     //Step 4: Close socket

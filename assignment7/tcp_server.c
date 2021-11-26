@@ -88,7 +88,7 @@ void sig_chld(int signo) {
 
     /* Wait the child process terminate */
     while ((pid = waitpid(-1, &stat, WNOHANG)) > 0)
-        printf("\nChild %d terminated\n", pid);
+        printf("\nChild %d terminated\n\n", pid);
 }
 
 void fileHandler(int sockfd) {
@@ -97,16 +97,8 @@ void fileHandler(int sockfd) {
     char c;
 
     bytes_received = recv(sockfd, buff, 10, 0);
-    if (bytes_received < 0)
-        perror("\nError: ");
-    else if (bytes_received == 0)
-        printf("Connection closed.");
     buff[bytes_received] = '\0';
     bytes_received = recv(sockfd, fileName, atoi(buff), 0);
-    if (bytes_received < 0)
-        perror("\nError: ");
-    else if (bytes_received == 0)
-        printf("Connection closed.");
     fileName[bytes_received] = '\0';
     upperCase(fileName);
     strcat(fileName, ".txt");
@@ -115,19 +107,14 @@ void fileHandler(int sockfd) {
         printf("[!] Cannot open your file!");
         return;
     }
-    char isDone[5];
+    bytes_received = recv(sockfd, buff, 10, 0);
+    buff[bytes_received] = '\0';
+    int sizeOfFile = atoi(buff);
     int total_bytes = 0;
     while ((n = recv(sockfd, buff, BUFF_SIZE, 0)) > 0) {
-        // buff[n] = '\0';
-        memcpy(isDone, &buff[n-4], 4);
-        isDone[4] = '\0';
-        if(strcmp(isDone, "done") == 0) {
-            buff[n-4] = '\0';
-            n -= 4;
-        }
         fwrite(buff, sizeof(char), n, fp);
         total_bytes += n;
-        if(strcmp(isDone, "done") == 0) break;
+        if (total_bytes == sizeOfFile) break;
     }
     fclose(fp);
     fp = fopen(fileName, "r");
