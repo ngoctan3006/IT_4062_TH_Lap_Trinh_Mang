@@ -16,11 +16,8 @@
 /* Handler process signal*/
 void sig_chld(int signo);
 
-/*
-* Receive and echo message to client
-* [IN] sockfd: socket descriptor that connects to client 	
-*/
-void echo(int sockfd);
+void fileHandler(int sockfd);
+char *upperCase(char *str);
 
 int main(int argc, char **argv) {
     if (argc != 2) {
@@ -74,7 +71,7 @@ int main(int argc, char **argv) {
         if (pid == 0) {
             close(listen_sock);
             printf("You got a connection from %s\n", inet_ntoa(client.sin_addr)); /* prints client's IP */
-            echo(conn_sock);
+            fileHandler(conn_sock);
             exit(0);
         }
 
@@ -94,19 +91,81 @@ void sig_chld(int signo) {
         printf("\nChild %d terminated\n", pid);
 }
 
-void echo(int sockfd) {
-    char buff[BUFF_SIZE];
-    int bytes_sent, bytes_received;
+void fileHandler(int sockfd) {
+    char buff[BUFF_SIZE + 1], fileName[BUFF_SIZE + 1];
+    int bytes_sent, bytes_received, n;
+    char c;
 
-    bytes_received = recv(sockfd, buff, BUFF_SIZE, 0);  //blocking
+    bytes_received = recv(sockfd, buff, 10, 0);
     if (bytes_received < 0)
         perror("\nError: ");
     else if (bytes_received == 0)
         printf("Connection closed.");
+    buff[bytes_received] = '\0';
+    bytes_received = recv(sockfd, fileName, atoi(buff), 0);
+    if (bytes_received < 0)
+        perror("\nError: ");
+    else if (bytes_received == 0)
+        printf("Connection closed.");
+    fileName[bytes_received] = '\0';
+    upperCase(fileName);
+    strcat(fileName, ".txt");
+    FILE *fp = fopen(fileName, "wb");
+    if (!fp) {
+        printf("[!] Cannot open your file!");
+        return;
+    }
+    char isDone[5];
+    int total_bytes = 0;
+    while ((n = recv(sockfd, buff, BUFF_SIZE, 0)) > 0) {
+        // buff[n] = '\0';
+        memcpy(isDone, &buff[n-4], 4);
+        isDone[4] = '\0';
+        if(strcmp(isDone, "done") == 0) {
+            buff[n-4] = '\0';
+            n -= 4;
+        }
+        fwrite(buff, sizeof(char), n, fp);
+        total_bytes += n;
+        if(strcmp(isDone, "done") == 0) break;
+    }
+    fclose(fp);
+    fp = fopen(fileName, "r");
+    FILE *f = fopen("res.txt", "w");
+    if (!fp || !f) {
+        printf("[!] Cannot open your file!");
+        return;
+    }
+    while ((c = fgetc(fp)) != EOF) {
+        if (c >= 'a' && c <= 'z')
+            c -= 32;
+        fputc(c, f);
+    }
+    fclose(fp);
+    fclose(f);
 
-    bytes_sent = send(sockfd, buff, bytes_received, 0); /* echo to the client */
+    bytes_sent = send(sockfd, fileName, strlen(fileName), 0);
     if (bytes_sent < 0)
         perror("\nError: ");
+    fp = fopen("res.txt", "rb");
+    if (!fp) {
+        printf("[!] Cannot open your file!");
+        return;
+    }
+    while ((n = fread(buff, 1, BUFF_SIZE, fp)) > 0) {
+        send(sockfd, buff, n, 0);
+    }
+    remove("res.txt");
+    remove(fileName);
 
     close(sockfd);
+}
+
+char *upperCase(char *str) {
+    int len = strlen(str);
+    for (int i = 0; i < len; i++) {
+        if (str[i] >= 'a' && str[i] <= 'z')
+            str[i] -= 32;
+    }
+    return str;
 }
