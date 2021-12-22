@@ -12,7 +12,7 @@
 #define THREAD_MAX 3
 #define MAX_SIZE 256
 
-//Remember to use -pthread when compiling this server's source code
+// Remember to use -pthread when compiling this server's source code
 void *connection_handler(void *);
 
 int main() {
@@ -30,7 +30,7 @@ int main() {
     server_addr.sin_port = htons(PORT);
     server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
 
-    //bind the socket to the specified IP addr and port
+    // bind the socket to the specified IP addr and port
     if (bind(server_socket, (struct sockaddr *)&server_addr, sizeof(server_addr)) != 0) {
         printf("socket bind failed...\n");
         exit(0);
@@ -76,12 +76,12 @@ void *connection_handler(void *client_socket) {
     send(socket, server_message, strlen(server_message), 0);
     char client_message[MAX_SIZE];
     while ((read_len = recv(socket, client_message, MAX_SIZE, 0)) > 0) {
-        //end of string marker
+        // end of string marker
         client_message[read_len] = '\0';
         if ((strcmp(client_message, "q") == 0) || (strcmp(client_message, "Q") == 0)) {
             break;
         }
-        //Send the message back to client
+        // Send the message back to client
         int len = strlen(client_message);
         for (int i = 0; i < len; i++) {
             if (!isalpha(client_message[i])) {
